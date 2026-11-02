@@ -1,6 +1,7 @@
 "use client";
 import React,{useMemo,useState} from "react";
-import {Player} from "@remotion/player";
+import dynamic from "next/dynamic";
+const Player=dynamic(()=>import("@remotion/player").then((module)=>module.Player),{ssr:false,loading:()=> <div className="player-loading">Preparing animation preview…</div>});
 import {AnimationComposition} from "@/components/AnimationComposition";
 import {AnimationProject,DEFAULT_PROJECT} from "@/lib/animation-schema";
 type GenerateResponse={project?:AnimationProject;mode?:"demo"|"gemini";message?:string;error?:string};
