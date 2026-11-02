@@ -9,6 +9,27 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+// Build the Remotion site once per server process instead of once per export.
+// Keep the bundle directory alive so subsequent requests can reuse it.
+let serveUrlPromise: Promise<string> | undefined;
+
+function getServeUrl(): Promise<string> {
+  if (!serveUrlPromise) {
+    serveUrlPromise = (async () => {
+      const bundleDir = await mkdtemp(path.join(os.tmpdir(), "ai-remotion-bundle-"));
+      return bundle({
+        entryPoint: path.resolve(process.cwd(), "remotion/index.ts"),
+        outDir: bundleDir,
+        publicDir: path.resolve(process.cwd(), "public"),
+      });
+    })().catch((error) => {
+      serveUrlPromise = undefined;
+      throw error;
+    });
+  }
+  return serveUrlPromise;
+}
+
 export async function POST(request: Request) {
   let workDir = "";
   try {
@@ -17,20 +38,25 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid animation project." }, { status: 400 });
     }
+
     const project = parsed.data;
-    workDir = await mkdtemp(path.join(os.tmpdir(), "ai-remotion-"));
-    const serveUrl = await bundle({
-      entryPoint: path.resolve(process.cwd(), "remotion/index.ts"),
-      outDir: path.join(workDir, "bundle"),
-      publicDir: path.resolve(process.cwd(), "public"),
-    });
+    workDir = await mkdtemp(path.join(os.tmpdir(), "ai-remotion-export-"));
+    const serveUrl = await getServeUrl();
     const inputProps = { project };
     const composition = await selectComposition({ serveUrl, id: "StockAnimation", inputProps });
     const outputLocation = path.join(workDir, "animation.mp4");
+
     await renderMedia({
-      composition, serveUrl, codec: "h264", outputLocation, inputProps,
-      crf: 18, pixelFormat: "yuv420p", concurrency: 2,
+      composition,
+      serveUrl,
+      codec: "h264",
+      outputLocation,
+      inputProps,
+      crf: 18,
+      pixelFormat: "yuv420p",
+      concurrency: 2,
     });
+
     const video = await readFile(outputLocation);
     return new NextResponse(new Uint8Array(video), {
       status: 200,
