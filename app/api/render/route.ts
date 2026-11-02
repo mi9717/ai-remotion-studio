@@ -9,10 +9,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-// Build the Remotion site once per server process instead of once per export.
-// Keep the bundle directory alive so subsequent requests can reuse it.
 let serveUrlPromise: Promise<string> | undefined;
-
 function getServeUrl(): Promise<string> {
   if (!serveUrlPromise) {
     serveUrlPromise = (async () => {
@@ -35,10 +32,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = AnimationProjectSchema.safeParse(body?.project);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid animation project." }, { status: 400 });
-    }
+    if (!parsed.success) return NextResponse.json({ error: "Invalid animation project." }, { status: 400 });
 
+    const quality = ["draft", "standard", "high"].includes(body?.quality) ? body.quality : "draft";
+    const settings = {
+      draft: { scale: 2 / 3, crf: 28 },
+      standard: { scale: 1, crf: 23 },
+      high: { scale: 1, crf: 18 },
+    } as const;
+    const selected = settings[quality as keyof typeof settings];
     const project = parsed.data;
     workDir = await mkdtemp(path.join(os.tmpdir(), "ai-remotion-export-"));
     const serveUrl = await getServeUrl();
@@ -52,7 +54,8 @@ export async function POST(request: Request) {
       codec: "h264",
       outputLocation,
       inputProps,
-      crf: 18,
+      crf: selected.crf,
+      scale: selected.scale,
       pixelFormat: "yuv420p",
       concurrency: 2,
     });
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "video/mp4",
-        "Content-Disposition": "attachment; filename=\"ai-remotion-studio.mp4\"",
+        "Content-Disposition": `attachment; filename="ai-remotion-${quality}.mp4"`,
         "Content-Length": String(video.byteLength),
         "Cache-Control": "no-store",
       },
