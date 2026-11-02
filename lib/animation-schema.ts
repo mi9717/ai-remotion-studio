@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SceneSchema = z.object({ id:z.string().min(1).max(40), title:z.string().min(1).max(90), subtitle:z.string().max(180).default(""), durationSeconds:z.number().int().min(2).max(20), visual:z.enum(["title","orbit","bars","network","closing"]), accent:z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#FF7A00") });
+export const SceneSchema = z.object({ id:z.string().min(1).max(40), title:z.string().min(1).max(90), subtitle:z.string().max(180).default(""), durationSeconds:z.number().int().min(2).max(20), visual:z.enum(["title","orbit","bars","network","closing","cube","particles","grid","wave","rings"]), accent:z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#FF7A00") });
 export const AnimationProjectSchema = z.object({ title:z.string().min(1).max(100), brief:z.string().min(1).max(4000), style:z.enum(["futuristic","minimal","editorial","corporate"]), durationSeconds:z.union([z.literal(15),z.literal(30),z.literal(60)]), fps:z.literal(30).default(30), width:z.literal(1920).default(1920), height:z.literal(1080).default(1080), scenes:z.array(SceneSchema).min(2).max(8) }).superRefine((p,ctx)=>{const total=p.scenes.reduce((s,x)=>s+x.durationSeconds,0);if(total!==p.durationSeconds)ctx.addIssue({code:z.ZodIssueCode.custom,message:`Scene durations must total exactly ${p.durationSeconds} seconds (currently ${total}).`,path:["scenes"]});});
 export type AnimationProject = z.infer<typeof AnimationProjectSchema>;
 export type AnimationScene = z.infer<typeof SceneSchema>;
