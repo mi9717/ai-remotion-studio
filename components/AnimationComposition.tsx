@@ -50,7 +50,6 @@ const SceneVisual: React.FC<{ scene: AnimationScene; frame: number }> = ({ scene
   if (scene.visual === "grid") return <div style={{ position: "absolute", inset: "8% 0 0 30%", opacity: .5, transform: `perspective(500px) rotateX(62deg) translateY(${Math.sin(frame / 18) * 12}px)`, transformOrigin: "center bottom", backgroundImage: `linear-gradient(${accent}55 1px, transparent 1px), linear-gradient(90deg, ${accent}55 1px, transparent 1px)`, backgroundSize: "54px 54px", maskImage: "linear-gradient(to top, black, transparent 90%)" }} />;
   if (scene.visual === "wave") return <svg viewBox="0 0 800 420" style={{ position: "absolute", right: "5%", top: "17%", width: "48%", height: "66%", overflow: "visible" }}>
     {[0, 1, 2, 3, 4].map((n) => <path key={n} d={`M 0 ${190 + n * 12} C 150 ${30 + n * 24}, 250 ${350 - n * 18}, 410 ${190 + n * 8} S 650 ${40 + n * 25}, 800 ${190 + n * 10}`} fill="none" stroke={accent} strokeWidth={n === 2 ? 4 : 1.5} opacity={.25 + n * .12} strokeDasharray="900" strokeDashoffset={-frame * (2 + n)} />)}
-    )}
   </svg>;
   if (scene.visual === "rings") return <div style={{ position: "absolute", right: "8%", top: "12%", width: "42%", height: "76%", display: "grid", placeItems: "center", perspective: 700 }}>
     {[0, 1, 2, 3].map((n) => <div key={n} style={{ position: "absolute", width: `${48 + n * 15}%`, aspectRatio: "1", border: `2px solid ${accent}${n % 2 ? "55" : "99"}`, borderRadius: "50%", transform: `rotateX(68deg) rotateZ(${frame * (n % 2 ? -0.45 : .35) + n * 24}deg)`, boxShadow: `0 0 22px ${accent}22` }} />)}
